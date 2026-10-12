@@ -34,6 +34,25 @@ Connectivity is a ladder, not a gamble: LAN and IPv6 direct paths first, UDP hol
 
 The full-platform line follows the family standard: desktop first, with iOS/iPadOS/watchOS/Android clients planned once the Rivet mobile host lands. Moonbeam hosts speak the standard Moonlight protocol for desktop view, so official Moonlight mobile apps work wherever a direct path exists (LAN, IPv6, port-forwarding); the interim bridge is a WireGuard endpoint on your own relay (M3) that official clients connect through.
 
+## Quick start (M0 — LAN text lane)
+
+Requires Racket 9+ (host daemon: macOS/Linux for now).
+
+```bash
+git clone https://github.com/turinglambdaai/moonbeam.git
+cd moonbeam
+raco pkg install --auto --name moonbeam --link racket
+
+# on the machine you want to reach:
+racket racket/moonbeam/host.rkt start             # prints a pairing PIN
+
+# on your machine:
+racket racket/moonbeam/client.rkt pair <host> 49090 --pin <NNNNNN>
+racket racket/moonbeam/client.rkt run <host> echo hello       # agent workhorse: JSON verdict, real exit code
+racket racket/moonbeam/client.rkt sh <host> --command uptime  # terminal lane
+racket racket/moonbeam/client.rkt put <host> ./file.txt       # file transfer
+```
+
 ## Roadmap
 
 - **M0** — relay server minimum (signaling + wake-on-LAN), host daemon and client CLI, and the text lane verified end to end on LAN: terminal + file transfer. No video stack involved yet.
@@ -45,7 +64,7 @@ The full-platform line follows the family standard: desktop first, with iOS/iPad
 
 ## Status
 
-Project kickoff: October 2026. No releases yet — M0 is where the first code will land.
+Project kickoff: October 2026. The M0 text lane — pairing, exec, terminal and file transfer over the LAN — is implemented and tested, and the relay ships health/signaling/wake endpoints. External-network access (hole-punching with relay fallback) lands in M1; the desktop-view stack in M2.
 
 ## License
 

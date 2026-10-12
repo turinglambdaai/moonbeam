@@ -1,0 +1,21 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: racket/setup-racket@v1
+        with:
+          racket-version: stable
+          variant: CS
+      - name: Install package
+        run: raco pkg install --auto --name moonbeam --link racket
+      - name: Run tests
+        run: raco test racket/moonbeam

@@ -34,6 +34,25 @@ Moonbeam 把这份体验拿回来：一条跑在你自己硬件上的控制面�
 
 全平台路线遵循家族标准：桌面三平台先行，iOS/iPadOS/watchOS/Android 客户端等 Rivet 移动宿主就绪后必做。Moonbeam 主机端对桌面画面说标准 Moonlight 协议，凡存在直连路径（局域网、IPv6、端口转发）官方 Moonlight 移动客户端即可使用；过渡的桥是中继上的 WireGuard 端点（M3），官方客户端经它直连。
 
+## 快速开始（M0——局域网文本车道）
+
+需要 Racket 9+（Host 守护进程暂限 macOS/Linux）。
+
+```bash
+git clone https://github.com/turinglambdaai/moonbeam.git
+cd moonbeam
+raco pkg install --auto --name moonbeam --link racket
+
+# 在要被到达的机器上：
+racket racket/moonbeam/host.rkt start             # 会打印配对 PIN
+
+# 在你的机器上：
+racket racket/moonbeam/client.rkt pair <host> 49090 --pin <NNNNNN>
+racket racket/moonbeam/client.rkt run <host> echo hello       # agent 工作马：JSON verdict + 真实退出码
+racket racket/moonbeam/client.rkt sh <host> --command uptime  # 终端车道
+racket racket/moonbeam/client.rkt put <host> ./file.txt       # 文件传输
+```
+
 ## 路线图
 
 - **M0** —— relay 服务器最小版（信令 + 远程唤醒）、Host 守护进程与 Client CLI，文本车道在局域网端到端验证：终端 + 文件传输。暂不涉及视频栈。
@@ -45,7 +64,7 @@ Moonbeam 把这份体验拿回来：一条跑在你自己硬件上的控制面�
 
 ## 状态
 
-立项于 2026 年 10 月。尚无 release——第一行代码会落在 M0。
+立项于 2026 年 10 月。M0 文本车道——配对、exec、终端与文件传输的局域网闭环——已实现并测试，relay 已带健康检查/信令/唤醒端点。外网链路（打洞 + 中继兜底）落在 M1，桌面画面栈落在 M2。
 
 ## 许可证
 

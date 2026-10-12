@@ -23,18 +23,20 @@ Moonbeam is that missing layer. It deliberately does **not** reinvent the video 
 
 Three pieces, one goal: your gaming PC is simply there.
 
-- **Host butler** (Windows, macOS, Linux) — installs and configures Apollo/Sunshine, automates pairing, manages virtual displays, monitors streaming sessions, and wakes the machine on demand.
+- **Host butler** — installs and configures Apollo/Sunshine, automates pairing, monitors streaming sessions, and wakes the machine on demand. Windows first-class (Apollo's per-client virtual display), Linux first-class (Sunshine's native capture with VAAPI/NVENC encoders), macOS best-effort (upstream support is the least mature there).
 - **Client** (Windows, macOS, Linux — Linux first-class) — discovers hosts on the LAN, presents a session dashboard, and drives Moonlight clients as external processes.
 - **Relay & signaling server** (single binary, Docker) — signaling, hole-punching assistance, a bandwidth-relay fallback, and wake-on-LAN dispatch. Deploy it on your own NAS (a Docker container on an always-on home device can send magic packets directly) or any cloud server. P2P comes first; the relay is only the fallback, because relayed game traffic on a cloud bill is real money.
 
-The full-platform line follows the family standard: desktop first, with iOS/iPadOS/watchOS/Android clients planned once the Rivet mobile host lands. In the meantime Moonbeam-managed hosts speak the standard Moonlight protocol, so the official Moonlight mobile apps work against them from day one.
+Connectivity is a ladder, not a gamble: LAN and IPv6 direct paths first, UDP hole-punching next, the self-hosted relay only as the fallback — each rung tries the cheaper path before spending relay bandwidth.
+
+The full-platform line follows the family standard: desktop first, with iOS/iPadOS/watchOS/Android clients planned once the Rivet mobile host lands. Moonbeam-managed hosts speak the standard Moonlight protocol, so official Moonlight mobile apps work wherever a direct path exists (LAN, IPv6, port-forwarding); reaching a relayed host from a phone needs a tunnel-capable client, which arrives with the mobile line — the interim bridge is a WireGuard endpoint on your own relay (M3) that official clients connect through.
 
 ## Roadmap
 
 - **M0** — relay server minimum (signaling + wake-on-LAN), a host CLI that sets up Apollo in one command, and LAN streaming verified end to end.
 - **M1** — client CLI and the external-network path: hole-punching with relay fallback. The "it works from anywhere" moment.
 - **M2** — GUI shells (macOS / Windows / Linux) with automated pairing.
-- **M3** — the complete wake experience (NAS container + cloud entry) and session monitoring.
+- **M3** — the complete wake experience (NAS container + cloud entry), session monitoring, and a WireGuard endpoint on the relay as the bridge for official mobile clients.
 - **M4** — family packaging benchmark (dmg / msi / deb / rpm / AppImage, update feeds) and the product site.
 - **M5+** — mobile and watch clients, gated on the Rivet mobile host; possibly deeper integration with the host stack (an Apollo fork) under GPLv3 obligations.
 

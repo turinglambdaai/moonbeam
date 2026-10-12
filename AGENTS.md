@@ -1,6 +1,6 @@
 # Moonbeam — agent 工作约定
 
-定位：自建服务器的远程游戏串流编排层——Host 管家 + Client + 自建信令/中继服务器，复用 Sunshine/Apollo + Moonlight 生态，Linux 一等公民。
+定位：自建服务器的远程游戏串流编排层——Host 管家 + Client + 自建信令/中继服务器，复用 Sunshine/Apollo + Moonlight 生态；macOS / Windows / Linux 桌面三平台**同等**支持，禁用任何"某平台一等公民/优先"的定位措辞（上游组件的平台成熟度差异可如实陈述为事实）。
 
 ## 硬边界
 

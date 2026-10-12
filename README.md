@@ -1,6 +1,6 @@
 # Moonbeam
 
-**Self-hosted remote gaming with the ease of UU Remote — your relay, your hardware, Linux first-class.**
+**Self-hosted remote gaming with the ease of UU Remote — your relay, your hardware, on all three desktops.**
 
 Moonbeam orchestrates the proven open-source streaming stack (Apollo/Sunshine hosts + Moonlight clients) and adds the piece it has always been missing: zero-config networking. Signaling, NAT hole-punching assistance, a relay fallback and wake-on-LAN run on infrastructure you own — a NAS or any cloud box — so the trip home to your gaming PC never depends on someone else's servers.
 
@@ -23,8 +23,8 @@ Moonbeam is that missing layer. It deliberately does **not** reinvent the video 
 
 Three pieces, one goal: your gaming PC is simply there.
 
-- **Host butler** — installs and configures Apollo/Sunshine, automates pairing, monitors streaming sessions, and wakes the machine on demand. Windows first-class (Apollo's per-client virtual display), Linux first-class (Sunshine's native capture with VAAPI/NVENC encoders), macOS best-effort (upstream support is the least mature there).
-- **Client** (Windows, macOS, Linux — Linux first-class) — discovers hosts on the LAN, presents a session dashboard, and drives Moonlight clients as external processes.
+- **Host butler** — installs and configures Apollo/Sunshine, automates pairing, monitors streaming sessions, and wakes the machine on demand, on macOS, Windows and Linux alike. Upstream component maturity differs by platform (Apollo's virtual display is Windows-only today; Sunshine's macOS support is the youngest) — stated plainly as upstream facts, never hidden.
+- **Client** (macOS, Windows, Linux) — discovers hosts on the LAN, presents a session dashboard, and drives Moonlight clients as external processes.
 - **Relay & signaling server** (single binary, Docker) — signaling, hole-punching assistance, a bandwidth-relay fallback, and wake-on-LAN dispatch. Deploy it on your own NAS (a Docker container on an always-on home device can send magic packets directly) or any cloud server. P2P comes first; the relay is only the fallback, because relayed game traffic on a cloud bill is real money.
 
 Connectivity is a ladder, not a gamble: LAN and IPv6 direct paths first, UDP hole-punching next, the self-hosted relay only as the fallback — each rung tries the cheaper path before spending relay bandwidth.

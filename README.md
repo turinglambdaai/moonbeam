@@ -10,21 +10,20 @@ Moonbeam orchestrates the proven open-source streaming stack (Apollo/Sunshine ho
 
 ## Why
 
-UU Remote (by NetEase) shows how remote gaming should feel: install, log in, and your home PC is simply there — reached through NetEase's networking fabric, woken on demand, streamed at low latency. Two things keep that experience out of reach for part of its audience:
+UU Remote (by NetEase) shows how remote gaming should feel: install, log in, and your home PC is simply there — reached through NetEase's networking fabric, woken on demand, streamed at low latency. The catch is that the whole experience rests on infrastructure you don't own:
 
-- **No Linux client.** The official lineup is Windows, macOS, iOS and Android; a Linux version has been "collecting feedback" since mid-2026.
-- **No self-hosting.** The magic — hole-punching, relay, wake-on-LAN signaling — lives on NetEase's servers. It is a free product you cannot own, and its continued existence is not under your control.
+- **No self-hosting.** The magic — hole-punching, relay, wake-on-LAN signaling — lives on NetEase's servers. It is a free product you cannot own: its rules and limits are not negotiable, which platforms get a client is not your call, and its continued existence is not under your control.
 
 Meanwhile the open-source stack already streams superbly: Sunshine and its Apollo fork on the host side, Moonlight clients everywhere, with latency and image quality that rival anything proprietary. What it lacks is exactly the part UU ships: the networking fabric and the zero-config experience around it.
 
-Moonbeam is that missing layer. It deliberately does **not** reinvent the video pipeline — capture, encoding, transport and decoding stay in the upstream native components, driven as external processes. Moonbeam owns the brain: orchestration, pairing, wake-up, and a control plane that runs on hardware you own.
+Moonbeam is that missing layer. It deliberately does **not** reinvent the video pipeline — capture, encoding, transport and decoding stay in the upstream native components, driven as external processes. Moonbeam owns the brain: orchestration, pairing, wake-up, a plain terminal lane for the agent era, and a control plane that runs on hardware you own.
 
 ## How it works
 
 Three pieces, one goal: your gaming PC is simply there.
 
 - **Host butler** — installs and configures Apollo/Sunshine, automates pairing, monitors streaming sessions, and wakes the machine on demand, on macOS, Windows and Linux alike. Upstream component maturity differs by platform (Apollo's virtual display is Windows-only today; Sunshine's macOS support is the youngest) — stated plainly as upstream facts, never hidden.
-- **Client** (macOS, Windows, Linux) — discovers hosts on the LAN, presents a session dashboard, and drives Moonlight clients as external processes.
+- **Client** (macOS, Windows, Linux) — discovers hosts on the LAN, presents a session dashboard, drives Moonlight clients as external processes, and opens a plain terminal to the host over the tunnel — a text lane that stays usable on links too poor for video.
 - **Relay & signaling server** (single binary, Docker) — signaling, hole-punching assistance, a bandwidth-relay fallback, and wake-on-LAN dispatch. Deploy it on your own NAS (a Docker container on an always-on home device can send magic packets directly) or any cloud server. P2P comes first; the relay is only the fallback, because relayed game traffic on a cloud bill is real money.
 
 Connectivity is a ladder, not a gamble: LAN and IPv6 direct paths first, UDP hole-punching next, the self-hosted relay only as the fallback — each rung tries the cheaper path before spending relay bandwidth.
@@ -34,7 +33,7 @@ The full-platform line follows the family standard: desktop first, with iOS/iPad
 ## Roadmap
 
 - **M0** — relay server minimum (signaling + wake-on-LAN), a host CLI that sets up Apollo in one command, and LAN streaming verified end to end.
-- **M1** — client CLI and the external-network path: hole-punching with relay fallback. The "it works from anywhere" moment.
+- **M1** — client CLI and the external-network path: hole-punching with relay fallback, plus a remote terminal over the tunnel. The "it works from anywhere" moment.
 - **M2** — GUI shells (macOS / Windows / Linux) with automated pairing.
 - **M3** — the complete wake experience (NAS container + cloud entry), session monitoring, and a WireGuard endpoint on the relay as the bridge for official mobile clients.
 - **M4** — family packaging benchmark (dmg / msi / deb / rpm / AppImage, update feeds) and the product site.

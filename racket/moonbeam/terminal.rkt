@@ -40,7 +40,8 @@
     [(pty)
      (unless (pty-supported?)
        (error 'spawn-terminal "pty backend requires unix/macOS"))
-     (define spawn-pty (dynamic-require pty-module-path 'spawn-pty))
+     (define spawn-pty
+       (dynamic-require (list 'submod pty-module-path 'ffi) 'spawn-pty))
      (spawn-pty shell-path args cols rows on-output)]
     [else (spawn-pipe shell-path args on-output)]))
 

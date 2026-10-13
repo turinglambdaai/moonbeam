@@ -116,6 +116,4 @@
 
   (provide spawn-pty))
 
-(require (submod "." ffi))
 
-(provide spawn-pty)

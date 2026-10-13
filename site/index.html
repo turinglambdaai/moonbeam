@@ -121,15 +121,30 @@ racket racket/moonbeam/client.rkt run home echo hello-from-anywhere</code></pre>
     </ul>
   </section>
 
-  <section id="download" class="section">
+  <section id="download" class="section alt">
     <h2 data-i18n="dl.title">下载</h2>
-    <p data-i18n="dl.body">
-      尚无安装包——当前为源码阶段，请按「三步开始」运行。
-      安装包与更新通道随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。
-    </p>
-    <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/turinglambdaai/moonbeam/releases" data-i18n="dl.releases">Releases 页面</a>
-      <a class="btn btn-secondary" href="https://github.com/turinglambdaai/moonbeam" data-i18n="dl.repo">仓库</a>
+    <div class="dl-grid">
+      <div class="dl-card">
+        <h3 data-i18n="dl-soon-title">早期开发中</h3>
+        <p data-i18n="dl-soon-body">安装包随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。先从源码运行，或 Watch Releases：</p>
+        <div class="code">git clone https://github.com/turinglambdaai/moonbeam
+cd moonbeam && raco pkg install --auto --name moonbeam --link racket
+racket racket/moonbeam/host.rkt start</div>
+        <a class="btn btn-primary" href="https://github.com/turinglambdaai/moonbeam/releases" data-i18n="dl.releases">Releases 页面</a>
+      </div>
+      <div class="dl-card">
+        <h3 data-i18n="dl-platforms-title">平台</h3>
+        <p class="platform-row">
+          <span class="chip ok">macOS</span>
+          <span class="chip ok">Linux</span>
+          <span class="chip" data-i18n="chip.win">Windows · 计划中</span>
+          <span class="chip" data-i18n="chip.mobile">移动端 · M5+</span>
+        </p>
+        <p class="muted" data-i18n="dl-platforms-body">
+          Host 守护进程与 CLI 客户端已可在 macOS / Linux 运行；桌面画面通道需局域网路径，Windows 与外网桌面视图随 M2 后半段交付。
+        </p>
+        <a class="btn btn-secondary" href="https://github.com/turinglambdaai/moonbeam" data-i18n="dl.repo">仓库</a>
+      </div>
     </div>
   </section>
 </main>
@@ -171,7 +186,11 @@ racket racket/moonbeam/client.rkt run home echo hello-from-anywhere</code></pre>
         'rm4': 'M4 · 家族打包标杆：dmg / msi / deb / rpm / AppImage、更新 feed、产品主页',
         'rm5': 'M5+ · iOS / iPadOS / watchOS / Android（等 rivet 移动宿主）',
         'dl.title': '下载',
-        'dl.body': '尚无安装包——当前为源码阶段，请按「三步开始」运行。安装包与更新通道随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。',
+        'dl-soon-title': '早期开发中',
+        'dl-soon-body': '安装包随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。先从源码运行，或 Watch Releases：',
+        'dl-platforms-title': '平台',
+        'chip.win': 'Windows · 计划中', 'chip.mobile': '移动端 · M5+',
+        'dl-platforms-body': 'Host 守护进程与 CLI 客户端已可在 macOS / Linux 运行；桌面画面通道需局域网路径，Windows 与外网桌面视图随 M2 后半段交付。',
         'dl.releases': 'Releases 页面', 'dl.repo': '仓库',
         'footer-note': 'Moonbeam 是独立开源项目，与网易无关、未获其认可。UU 远程是网易的商标。Moonlight / Sunshine / Apollo 是其各自项目的名称。'
       },
@@ -205,7 +224,11 @@ racket racket/moonbeam/client.rkt run home echo hello-from-anywhere</code></pre>
         'rm4': 'M4 · family packaging benchmark: dmg / msi / deb / rpm / AppImage, signed update feeds, product site',
         'rm5': 'M5+ · iOS / iPadOS / watchOS / Android (gated on the rivet mobile host)',
         'dl.title': 'Download',
-        'dl.body': 'No installers yet — source-stage; run it via Get started. Packages and update channels land with M4 (dmg / msi / deb / rpm / AppImage, signed update feeds).',
+        'dl-soon-title': 'Early development',
+        'dl-soon-body': 'Packages land with M4 (dmg / msi / deb / rpm / AppImage, signed update feeds). Run from source for now, or Watch Releases:',
+        'dl-platforms-title': 'Platforms',
+        'chip.win': 'Windows · planned', 'chip.mobile': 'Mobile · M5+',
+        'dl-platforms-body': 'The host daemon and CLI client run on macOS / Linux today; the desktop-view lane needs a LAN path — Windows and relayed desktop view ship in the second half of M2.',
         'dl.releases': 'Releases', 'dl.repo': 'Repository',
         'footer-note': 'Moonbeam is an independent open-source project, unaffiliated with NetEase and not endorsed by it. UU Remote is a NetEase trademark. Moonlight / Sunshine / Apollo are the names of their respective projects.'
       }

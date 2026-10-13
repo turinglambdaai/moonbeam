@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added — M2 (first slice): the desktop-view lane
+
+- Host `setup` command: detects Apollo/Sunshine and Moonlight installs,
+  verifies the upstream apps config (parses apps.json, reports Desktop
+  entry), and prints a deterministic JSON status. Opt-in `--install` carries
+  the platform install command (macOS: LizardByte homebrew cask; Linux:
+  apt/flatpak). Apollo stays a manual download from its GitHub releases.
+- Client `view` command: builds a launch plan for the desktop-view lane —
+  resolves the host's LAN address from the pairing entry, detects the local
+  Moonlight (qt or embedded), and prints the plan as JSON; `--go` launches
+  the stream (office-grade, via the upstream Moonlight client).
+- Requires a LAN path for now (pair once on the LAN); relayed desktop view
+  lands with the M2 direct-path rungs (IPv6, UDP hole-punching). GUI shells
+  are the second half of M2.
+
 ### Added — M1: the text lane, anywhere
 
 - Relay splice tunnel: the host and the client both dial OUT to the relay,

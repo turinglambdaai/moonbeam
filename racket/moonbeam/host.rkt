@@ -14,6 +14,7 @@
          racket/string
          racket/system
          racket/tcp
+         "desktop.rkt"
          "httpmini.rkt"
          "netutil.rkt"
          "proto.rkt"
@@ -404,6 +405,15 @@
       (if (and (pair? argv) (string=? (car argv) "start"))
           (cdr argv)
           argv)))
+  ;; `setup` — desktop-view lane status/install (agent-friendly JSON).
+  (when (and (pair? argv*) (string=? (car argv*) "setup"))
+    (define install? (member "--install" argv*))
+    (define status (desktop-status))
+    (printf "~a\n" (jsexpr->string
+                    (if install?
+                        (hash-set status 'install-command (install-command))
+                        status)))
+    (exit 0))
   (parameterize ([current-command-line-arguments (list->vector argv*)])
   (define port default-port)
   (define shell #f)

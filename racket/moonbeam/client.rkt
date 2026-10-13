@@ -19,6 +19,7 @@
          racket/string
          racket/system
          racket/tcp
+         "desktop.rkt"
          "proto.rkt"
          "terminal.rkt")
 
@@ -313,6 +314,38 @@
   (close-output-port out)
   sid)
 
+;; ---- desktop view (M2): launch Moonlight against the host ----
+
+;; Builds the launch plan for the desktop-view lane. Requires a LAN address
+;; (pair once on the LAN); external desktop view lands in M2 second half.
+;; Returns a plan jsexpr — nothing is launched until view-launch!.
+(define (view-host host-id #:app [app "Desktop"])
+  (define entry (lookup-entry host-id))
+  (unless entry
+    (error 'view "no entry for ~a; run: moonbeam pair ~a --pin <NNNNNN>" host-id host-id))
+  (define direct-host (list-ref entry 1))
+  (unless direct-host
+    (error 'view
+           "no LAN address for ~a — pair once on the LAN first; desktop view over the relay lands in M2 second half"
+           host-id))
+  (define qt (detect-moonlight-qt))
+  (define emb (detect-moonlight-embedded))
+  (define args
+    (cond
+      [qt (moonlight-qt-launch-args qt direct-host app)]
+      [emb (embedded-launch-args emb direct-host app)]
+      [else
+       (error 'view
+              "no Moonlight client found on this machine — install Moonlight (moonlight-qt) or moonlight-embedded")]))
+  (hasheq 'ok #t 'host host-id 'addr direct-host 'app app
+          'tool (~a (car args)) 'args args))
+
+;; Launches the plan built by view-host. Returns the plan jsexpr.
+(define (view-launch! host-id #:app [app "Desktop"])
+  (define plan (view-host host-id #:app app))
+  (apply system* (hash-ref plan 'args))
+  plan)
+
 ;; ---- file transfer ----
 
 ;; Sends a local file; returns the ack jsexpr.
@@ -374,7 +407,7 @@
       (close-output-port out))))
 
 (provide pair! run-command open-terminal terminal-command terminal-interactive
-         put-file get-file*
+         put-file get-file* view-host view-launch!
          config-dir store-path relay-config-path relay-cfg set-relay-config!
          save-store! lookup-entry)
 
@@ -389,6 +422,7 @@
     (eprintf "  moonbeam sh HOST-ID [--command STR] [--resume ID]\n")
     (eprintf "  moonbeam put HOST-ID LOCAL [REMOTE-NAME]\n")
     (eprintf "  moonbeam get HOST-ID REMOTE [LOCAL]\n")
+    (eprintf "  moonbeam view HOST-ID [--app NAME] [--go]\n")
     (exit 2))
   (define args (vector->list (current-command-line-arguments)))
   (when (null? args) (usage))
@@ -442,6 +476,15 @@
        [else
         (terminal-interactive host-id
                               #:resume (and resume-flag (cadr resume-flag)))])]
+    ["view"
+     (unless (pair? rest) (usage))
+     (define host-id (car rest))
+     (define app-flag (member "--app" rest))
+     (define app (if app-flag (cadr app-flag) "Desktop"))
+     (define plan (view-host host-id #:app app))
+     (printf "~a\n" (jsexpr->string plan))
+     (when (member "--go" rest)
+       (apply system* (hash-ref plan 'args)))]
     ["put"
      (unless (>= (length rest) 2) (usage))
      (define host-id (car rest))

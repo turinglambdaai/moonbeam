@@ -15,7 +15,15 @@
     [(macosx) (ffi-lib "libSystem.B.dylib")]
     [else #f]))
 
-(define-ffi-definer define-libc libc-lib)
+;; Lazy resolution: the module loads (and is skipped by tests) on platforms
+;; where these libc symbols do not exist; a stray call fails with a clear
+;; error instead of breaking the load.
+(define-ffi-definer define-libc libc-lib
+  #:default-make-fail
+  (lambda (name)
+    (lambda ()
+      (error 'terminal-pty "unix-only FFI (~a) unavailable on this platform"
+             name))))
 
 (define-libc posix_openpt (_fun _int -> _int))
 (define-libc grantpt (_fun _int -> _int))

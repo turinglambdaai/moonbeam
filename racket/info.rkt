@@ -10,3 +10,8 @@
 
 (define build-deps
   '("rackunit-lib"))
+
+;; terminal-pty.rkt resolves unix FFI at load; its behavior is covered by
+;; test/pty-check.rkt through the daemon, so raco test skips the file.
+(define test-omit-paths
+  '("moonbeam/terminal-pty.rkt"))

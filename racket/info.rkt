@@ -6,7 +6,8 @@
 (define license 'MIT)
 
 (define deps
-  '(["base" #:version "9.0"]))
+  '(["base" #:version "9.0"]
+    "websocket"))
 
 (define build-deps
   '("rackunit-lib"))

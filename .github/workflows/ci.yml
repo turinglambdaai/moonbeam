@@ -18,6 +18,9 @@ jobs:
           distribution: full
           variant: CS
           version: '9.3'
+      - name: Install websocket library
+        run: raco pkg install --auto --no-docs https://github.com/turinglambdaai/websocket
+        shell: bash
       - name: Install package
         run: raco pkg install --auto --name moonbeam --link racket
         shell: bash

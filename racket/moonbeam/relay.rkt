@@ -14,6 +14,7 @@
          racket/string
          racket/tcp
          "netutil.rkt"
+         "signal.rkt"
          "proto.rkt"
          "wol.rkt")
 
@@ -80,6 +81,14 @@
   (define-values (method target headers body) (read-request/from in first-line))
   (unless (string=? method "")
     (define path (car (string-split (if (string=? target "") "/" target) "?")))
+    (cond
+      [(and (string=? method "GET") (string=? path "/signal")
+            (string-prefix?
+             (string-downcase (hash-ref headers "upgrade" "")) "websocket"))
+       (handle-ws-signal! signal-hub in out first-line headers
+                          (relay-token)
+                          (lambda () (hash-keys tunnels)))]
+      [else
     (define auth-ok
       (and (relay-token)
            (equal? (hash-ref headers "x-moonbeam-token" #f) (relay-token))))
@@ -120,7 +129,8 @@
                 (send-wol (~a m))
                 1)))
           (send-response out 200 (hasheq 'ok #t 'sent sent))])]
-      [else (send-response out 404 (hasheq 'ok #f 'error "not-found"))])))
+      [else (send-response out 404 (hasheq 'ok #f 'error "not-found"))])
+      ])))
 
 ;; ---- tunnel (M1) ----
 ;;
@@ -130,6 +140,10 @@
 ;; [go][client frames...] in order and never races the relay for bytes.
 
 (define tunnels (make-hash))   ; host-id -> list of waiting uplink (cons in out)
+
+;; WebSocket presence fan-out (control plane only; frames keep flowing
+;; through the splice below untouched)
+(define signal-hub (make-signal-hub))
 
 (define (tunnel-denied out why)
   (fprintf out "~a\n" why)
@@ -156,7 +170,22 @@
         (tunnel-denied out "BUSY")]
        [else
         (hash-set! tunnels id (append (hash-ref tunnels id (list))
-                                      (list (cons in out))))])]
+                                      (list (cons in out))))
+        (signal-hub-broadcast! signal-hub (hasheq 'event "host-up" 'id id))
+        ;; presence watchdog: a queued uplink has no reader, so a peer
+        ;; that vanishes is only visible via EOF; peek never consumes
+        (thread
+         (lambda ()
+           (let watch ()
+             (define b (peek-byte in))
+             (cond
+               [(eof-object? b)
+                (hash-set! tunnels id
+                           (remq (cons in out)
+                                 (hash-ref tunnels id (list))))
+                (signal-hub-broadcast! signal-hub
+                                       (hasheq 'event "host-down" 'id id))]
+               [else (sleep 0.5) (watch)]))))])]
     ;; Client: weld the waiting uplink to this connection.
     [(list "CLIENT" id _token)
      #:when (and token-ok (valid-id? id))
@@ -174,17 +203,24 @@
         (write-json-frame up-out frame-ctl (hasheq 'op "go"))
         (flush-output up-out)
         ;; Weld: client -> uplink and uplink -> client.
+        (define weld-a
+          (thread
+           (lambda ()
+             (with-handlers ([exn:fail? void])
+               (copy-port in up-out)
+               (close-output-port up-out)))))
+        (define weld-b
+          (thread
+           (lambda ()
+             (with-handlers ([exn:fail? void])
+               (copy-port up-in out)
+               (close-input-port up-in)
+               (close-output-port out)))))
         (thread
          (lambda ()
-           (with-handlers ([exn:fail? void])
-             (copy-port in up-out)
-             (close-output-port up-out))))
-        (thread
-         (lambda ()
-           (with-handlers ([exn:fail? void])
-             (copy-port up-in out)
-             (close-input-port up-in)
-             (close-output-port out))))])]
+           (sync weld-a weld-b)
+           (signal-hub-broadcast! signal-hub
+                                  (hasheq 'event "host-down" 'id id))))])]
     [(list "UP" _id _token) (tunnel-denied out "DENY")]
     [(list "CLIENT" _id _token) (tunnel-denied out "DENY")]
     [_ (tunnel-denied out "DENY")]))

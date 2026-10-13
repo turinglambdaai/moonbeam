@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moonbeam — 自建服务器的远程接入</title>
+<meta name="description" content="Moonbeam: 把 UU 远程式开箱即用搬回自己的硬件——自建信令、中继与远程唤醒，隧道上的远程终端与文件传输是主车道，桌面画面按需调取。macOS / Windows / Linux。">
+<link rel="stylesheet" href="styles.css">
+<script>
+  (function () {
+    var t = localStorage.getItem('moonbeam-theme');
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    var l = localStorage.getItem('moonbeam-lang');
+    if (!l) l = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+    document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  })();
+</script>
+</head>
+<body>
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#">Moonbeam</a>
+    <nav class="nav-links">
+      <a href="#how" data-i18n="nav.how">工作方式</a>
+      <a href="#ladder" data-i18n="nav.ladder">连接梯子</a>
+      <a href="#start" data-i18n="nav.start">三步开始</a>
+      <a href="#roadmap" data-i18n="nav.roadmap">路线图</a>
+      <a href="https://github.com/turinglambdaai/moonbeam" data-i18n="nav.github">GitHub</a>
+      <div class="lang-dropdown-wrapper">
+        <button class="lang-btn" type="button" aria-label="Switch language">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span id="current-lang-label">English</span>
+        </button>
+        <ul class="lang-menu">
+          <li onclick="setLanguage('en')">English</li>
+          <li onclick="setLanguage('zh')">简体中文</li>
+        </ul>
+      </div>
+      <button class="theme-btn" id="theme-btn" aria-label="Toggle theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="kicker" data-i18n="kicker">agent 时代 · 自建服务器 · 文本车道优先</p>
+    <h1 data-i18n="hero-title">家里那台机器，一条隧道到家。</h1>
+    <p class="lede" data-i18n="hero-lede">
+      UU 远程证明了远程该有的样子：装上、登录、机器就在那里。Moonbeam 把这份体验搬回你自己的硬件——
+      信令、中继与远程唤醒跑在你自己的 NAS 或服务器上。agent 用 <code>run</code> 拿确定性 JSON 与真实退出码，
+      人用终端与文件传输；桌面画面按需调取，复用 Moonlight 生态。
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#start" data-i18n="hero.start">三步开始</a>
+      <a class="btn btn-secondary" href="https://github.com/turinglambdaai/moonbeam" data-i18n="hero.source">查看源码</a>
+    </div>
+    <p class="status-line" data-i18n="hero.status">M0 + M1 已落地并通过三平台 CI：文本车道局域网与外网隧道全通。尚无安装包，当前为源码运行。</p>
+  </section>
+
+  <section id="how" class="section">
+    <h2 data-i18n="how.title">三件套，一个目标</h2>
+    <div class="grid">
+      <div class="card">
+        <h3 data-i18n="how.host.title">Host 管家</h3>
+        <p data-i18n="how.host.body">常驻 macOS / Windows / Linux：PIN 配对、exec 确定性 JSON verdict、终端会话（pipe / 真 pty）、文件 put/get 带 SHA-1 校验。</p>
+      </div>
+      <div class="card">
+        <h3 data-i18n="how.client.title">Client</h3>
+        <p data-i18n="how.client.body">agent-first CLI：路由梯子先试局域网直连（硬超时），中继隧道兜底；断线继承让 shell 脱离连接后继续活着，随时 resume。</p>
+      </div>
+      <div class="card">
+        <h3 data-i18n="how.relay.title">Relay</h3>
+        <p data-i18n="how.relay.body">单文件零依赖 + Docker：健康检查、信令、远程唤醒（原生 SO_BROADCAST），以及把主机与客户端焊在一起的字节拼接隧道。</p>
+      </div>
+    </div>
+    <p class="note" data-i18n="how.note">
+      刻意不重造视频管线：桌面画面按需调取，复用 Moonlight 生态（Apollo / Sunshine 主机端 + Moonlight 客户端，独立进程驱动）。
+      Moonbeam 拥有的是其余的全部——隧道、终端、文件、唤醒、配对与编排。
+    </p>
+  </section>
+
+  <section id="ladder" class="section">
+    <h2 data-i18n="ladder.title">连接梯子，不赌运气</h2>
+    <p data-i18n="ladder.body">
+      局域网直连优先（1.5 秒硬超时），中继隧道兜底——主机与客户端都向 relay 外呼，
+      relay 把两条连接焊成一根字节管道，任何允许外呼的 NAT 后面都能用，不需要端口转发。
+      文本车道只有千比特级，走中继毫不心疼；未来视频车道的直连梯级（IPv6 直拨、UDP 打洞）随 M2 交付。
+    </p>
+  </section>
+
+  <section id="start" class="section">
+    <h2 data-i18n="start.title">三步开始</h2>
+    <p data-i18n="start.require">需要 Racket 9+（Host 守护进程暂限 macOS / Linux）。</p>
+<pre><code>git clone https://github.com/turinglambdaai/moonbeam.git
+cd moonbeam
+raco pkg install --auto --name moonbeam --link racket</code></pre>
+    <p data-i18n="start.host">在要被到达的机器上（Host）：</p>
+<pre><code>racket racket/moonbeam/host.rkt start             # 会打印配对 PIN</code></pre>
+    <p data-i18n="start.client">在你的机器上（Client）：</p>
+<pre><code>racket racket/moonbeam/client.rkt pair &lt;host&gt; 49090 --pin &lt;NNNNNN&gt;
+racket racket/moonbeam/client.rkt run &lt;host&gt; echo hello       # JSON verdict + 真实退出码
+racket racket/moonbeam/client.rkt sh &lt;host&gt; --command uptime  # 终端车道
+racket racket/moonbeam/client.rkt put &lt;host&gt; ./file.txt       # 文件传输</code></pre>
+    <p data-i18n="start.relay">从局域网外——先把两端指到你的 relay：</p>
+<pre><code>racket racket/moonbeam/host.rkt start --relay &lt;relay:8090&gt; --host-id home --relay-token &lt;token&gt;
+racket racket/moonbeam/client.rkt use-relay &lt;relay&gt; 8090 &lt;token&gt;
+racket racket/moonbeam/client.rkt pair home --pin &lt;NNNNNN&gt; --via
+racket racket/moonbeam/client.rkt run home echo hello-from-anywhere</code></pre>
+  </section>
+
+  <section id="roadmap" class="section">
+    <h2 data-i18n="roadmap.title">路线图</h2>
+    <ul class="roadmap">
+      <li><span class="done" data-i18n="rm0.tag">已完成</span><span data-i18n="rm0">M0 · 文本车道局域网闭环：配对、exec、终端、文件传输</span></li>
+      <li><span class="done" data-i18n="rm1.tag">已完成</span><span data-i18n="rm1">M1 · relay 拼接隧道：外网可达、断线继承、路由梯子</span></li>
+      <li><span data-i18n="rm2">M2 · 桌面画面：装配 Apollo / Sunshine，驱动 Moonlight（办公级调优）+ 视频车道直连梯级（IPv6、UDP 打洞）+ GUI 壳</span></li>
+      <li><span data-i18n="rm3">M3 · 完整唤醒体验（NAS 容器 + 云入口）、会话监控、防窥、无线副屏</span></li>
+      <li><span data-i18n="rm4">M4 · 家族打包标杆：dmg / msi / deb / rpm / AppImage、更新 feed、产品主页</span></li>
+      <li><span data-i18n="rm5">M5+ · iOS / iPadOS / watchOS / Android（等 rivet 移动宿主）</span></li>
+    </ul>
+  </section>
+
+  <section id="download" class="section">
+    <h2 data-i18n="dl.title">下载</h2>
+    <p data-i18n="dl.body">
+      尚无安装包——当前为源码阶段，请按「三步开始」运行。
+      安装包与更新通道随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/turinglambdaai/moonbeam/releases" data-i18n="dl.releases">Releases 页面</a>
+      <a class="btn btn-secondary" href="https://github.com/turinglambdaai/moonbeam" data-i18n="dl.repo">仓库</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p data-i18n="footer-note">Moonbeam 是独立开源项目，与网易无关、未获其认可。UU 远程是网易的商标。Moonlight / Sunshine / Apollo 是其各自项目的名称。</p>
+</footer>
+
+<script>
+  (function () {
+    var I18N = {
+      zh: {
+        'nav.how': '工作方式', 'nav.ladder': '连接梯子', 'nav.start': '三步开始',
+        'nav.roadmap': '路线图', 'nav.github': 'GitHub',
+        'kicker': 'agent 时代 · 自建服务器 · 文本车道优先',
+        'hero-title': '家里那台机器，一条隧道到家。',
+        'hero-lede': 'UU 远程证明了远程该有的样子：装上、登录、机器就在那里。Moonbeam 把这份体验搬回你自己的硬件——信令、中继与远程唤醒跑在你自己的 NAS 或服务器上。agent 用 run 拿确定性 JSON 与真实退出码，人用终端与文件传输；桌面画面按需调取，复用 Moonlight 生态。',
+        'hero.start': '三步开始', 'hero.source': '查看源码',
+        'hero.status': 'M0 + M1 已落地并通过三平台 CI：文本车道局域网与外网隧道全通。尚无安装包，当前为源码运行。',
+        'how.title': '三件套，一个目标',
+        'how.host.title': 'Host 管家',
+        'how.host.body': '常驻 macOS / Windows / Linux：PIN 配对、exec 确定性 JSON verdict、终端会话（pipe / 真 pty）、文件 put/get 带 SHA-1 校验。',
+        'how.client.title': 'Client',
+        'how.client.body': 'agent-first CLI：路由梯子先试局域网直连（硬超时），中继隧道兜底；断线继承让 shell 脱离连接后继续活着，随时 resume。',
+        'how.relay.title': 'Relay',
+        'how.relay.body': '单文件零依赖 + Docker：健康检查、信令、远程唤醒（原生 SO_BROADCAST），以及把主机与客户端焊在一起的字节拼接隧道。',
+        'how.note': '刻意不重造视频管线：桌面画面按需调取，复用 Moonlight 生态（Apollo / Sunshine 主机端 + Moonlight 客户端，独立进程驱动）。Moonbeam 拥有的是其余的全部——隧道、终端、文件、唤醒、配对与编排。',
+        'ladder.title': '连接梯子，不赌运气',
+        'ladder.body': '局域网直连优先（1.5 秒硬超时），中继隧道兜底——主机与客户端都向 relay 外呼，relay 把两条连接焊成一根字节管道，任何允许外呼的 NAT 后面都能用，不需要端口转发。文本车道只有千比特级，走中继毫不心疼；未来视频车道的直连梯级（IPv6 直拨、UDP 打洞）随 M2 交付。',
+        'start.title': '三步开始', 'start.require': '需要 Racket 9+（Host 守护进程暂限 macOS / Linux）。',
+        'start.host': '在要被到达的机器上（Host）：',
+        'start.client': '在你的机器上（Client）：',
+        'start.relay': '从局域网外——先把两端指到你的 relay：',
+        'roadmap.title': '路线图',
+        'rm0.tag': '已完成', 'rm0': 'M0 · 文本车道局域网闭环：配对、exec、终端、文件传输',
+        'rm1.tag': '已完成', 'rm1': 'M1 · relay 拼接隧道：外网可达、断线继承、路由梯子',
+        'rm2': 'M2 · 桌面画面：装配 Apollo / Sunshine，驱动 Moonlight（办公级调优）+ 视频车道直连梯级（IPv6、UDP 打洞）+ GUI 壳',
+        'rm3': 'M3 · 完整唤醒体验（NAS 容器 + 云入口）、会话监控、防窥、无线副屏',
+        'rm4': 'M4 · 家族打包标杆：dmg / msi / deb / rpm / AppImage、更新 feed、产品主页',
+        'rm5': 'M5+ · iOS / iPadOS / watchOS / Android（等 rivet 移动宿主）',
+        'dl.title': '下载',
+        'dl.body': '尚无安装包——当前为源码阶段，请按「三步开始」运行。安装包与更新通道随 M4 落地（dmg / msi / deb / rpm / AppImage，带签名更新 feed）。',
+        'dl.releases': 'Releases 页面', 'dl.repo': '仓库',
+        'footer-note': 'Moonbeam 是独立开源项目，与网易无关、未获其认可。UU 远程是网易的商标。Moonlight / Sunshine / Apollo 是其各自项目的名称。'
+      },
+      en: {
+        'nav.how': 'How it works', 'nav.ladder': 'The ladder', 'nav.start': 'Get started',
+        'nav.roadmap': 'Roadmap', 'nav.github': 'GitHub',
+        'kicker': 'Agent era · self-hosted · text lane first',
+        'hero-title': 'Your machine at home, one tunnel away.',
+        'hero-lede': 'UU Remote proved what remote should feel like: install, log in, and your PC is simply there. Moonbeam rebuilds that experience on hardware you own — signaling, relay and wake-on-LAN run on your own NAS or server. Agents use run for deterministic JSON with real exit codes; humans use the terminal and file transfer; desktop view is on demand, riding the Moonlight ecosystem.',
+        'hero.start': 'Get started', 'hero.source': 'View source',
+        'hero.status': 'M0 + M1 are done and green on three-platform CI: the text lane works over LAN and through the external-network tunnel. No installers yet — source-run for now.',
+        'how.title': 'Three pieces, one goal',
+        'how.host.title': 'Host butler',
+        'how.host.body': 'Resident on macOS / Windows / Linux: PIN pairing, exec with deterministic JSON verdicts, terminal sessions (pipe / real pty), file put/get with SHA-1 checks.',
+        'how.client.title': 'Client',
+        'how.client.body': 'Agent-first CLI: the routing ladder tries LAN direct first (hard deadline), relay tunnel as fallback; detached sessions keep the shell alive across drops, resumable any time.',
+        'how.relay.title': 'Relay',
+        'how.relay.body': 'Single-file, zero dependencies + Docker: health, signaling, wake-on-LAN (raw SO_BROADCAST), and the byte-splice tunnel that welds the host and the client together.',
+        'how.note': 'Deliberately no reinvented video pipeline: desktop view is on demand, riding the Moonlight ecosystem (Apollo / Sunshine hosts + Moonlight clients, driven as external processes). Moonbeam owns the rest — the tunnel, terminal, files, wake-up, pairing and orchestration.',
+        'ladder.title': 'A ladder, not a gamble',
+        'ladder.body': 'LAN direct first (hard 1.5 s deadline), relay tunnel as fallback — the host and the client both dial OUT to the relay, which welds the two connections into one byte pipe. Works behind any NAT that allows outbound traffic; no port forwarding. The text lane is kilobits, so riding the relay costs nothing; direct-path rungs for the future video lane (IPv6, UDP hole-punching) land with M2.',
+        'start.title': 'Get started', 'start.require': 'Requires Racket 9+ (host daemon: macOS / Linux for now).',
+        'start.host': 'On the machine you want to reach (host):',
+        'start.client': 'On your machine (client):',
+        'start.relay': 'From outside the LAN — point both ends at your relay:',
+        'roadmap.title': 'Roadmap',
+        'rm0.tag': 'Done', 'rm0': 'M0 · the LAN text lane: pairing, exec, terminal, file transfer',
+        'rm1.tag': 'Done', 'rm1': 'M1 · the relay splice tunnel: external reach, detached sessions, the routing ladder',
+        'rm2': 'M2 · desktop view: Apollo / Sunshine setup, Moonlight driving (office-grade, not esports) + direct-path rungs for the video lane (IPv6, UDP hole-punching) + GUI shells',
+        'rm3': 'M3 · the complete wake experience (NAS container + cloud entry), session monitoring, privacy screen, wireless second screen',
+        'rm4': 'M4 · family packaging benchmark: dmg / msi / deb / rpm / AppImage, signed update feeds, product site',
+        'rm5': 'M5+ · iOS / iPadOS / watchOS / Android (gated on the rivet mobile host)',
+        'dl.title': 'Download',
+        'dl.body': 'No installers yet — source-stage; run it via Get started. Packages and update channels land with M4 (dmg / msi / deb / rpm / AppImage, signed update feeds).',
+        'dl.releases': 'Releases', 'dl.repo': 'Repository',
+        'footer-note': 'Moonbeam is an independent open-source project, unaffiliated with NetEase and not endorsed by it. UU Remote is a NetEase trademark. Moonlight / Sunshine / Apollo are the names of their respective projects.'
+      }
+    };
+
+    function setLang(lang) {
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+      var dict = I18N[lang];
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n');
+        if (dict[key]) el.textContent = dict[key];
+      });
+      document.getElementById('current-lang-label').textContent = lang === 'zh' ? '简体中文' : 'English';
+      localStorage.setItem('moonbeam-lang', lang);
+    }
+
+    window.setLanguage = setLang;
+
+    document.querySelector('.lang-btn').addEventListener('click', function () {
+      var menu = document.querySelector('.lang-menu');
+      menu.classList.toggle('open');
+    });
+
+    document.getElementById('theme-btn').addEventListener('click', function () {
+      var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('moonbeam-theme', next);
+    });
+
+    setLang(document.documentElement.lang === 'zh-CN' ? 'zh' : 'en');
+  })();
+</script>
+</body>
+</html>

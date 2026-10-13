@@ -161,7 +161,51 @@
              (write-frame out frame-data b)
              (loop)))))]))
 
+;; ---- detachable terminal sessions (断线继承) ----
+;;
+;; A session owns its shell process, not its TCP connection. When the
+;; connection drops the shell keeps running; a later `open-term` carrying the
+;; session id reattaches. Sessions die only when the shell exits.
+
+(define sessions (make-hash)) ; session-id -> record
+(define session-seq (make-parameter 0))
+
+(define (fresh-session-id)
+  (let loop ()
+    (define id (~a "s" (current-seconds) "-" (random 10000)))
+    (if (hash-ref sessions id #f) (loop) id)))
+
+;; record fields, positional: [id write-input! resize! wait close! out-box closed?]
+(define (session-id rec) (vector-ref rec 0))
+(define (session-write! rec) (vector-ref rec 1))
+(define (session-resize! rec) (vector-ref rec 2))
+(define (session-wait rec) (vector-ref rec 3))
+(define (session-close! rec) (vector-ref rec 4))
+(define (session-out-box rec) (vector-ref rec 5))
+(define (session-closed? rec) (vector-ref rec 6))
+(define (session-dead? rec) (unbox (session-closed? rec)))
+
+(define (detach-session! rec out)
+  (set-box! (session-out-box rec) #f)
+  (void))
+
 (define (op-open-term in out msg)
+  (define resume-id (hash-ref msg 'resume #f))
+  (define existing (and resume-id (hash-ref sessions resume-id #f)))
+  (cond
+    [(and resume-id (not existing))
+     (write-json-frame out frame-ctl (hasheq 'ok #f 'error "no-such-session"))]
+    [existing
+     ;; Reattach: point the session's output at this connection and drive it.
+     (set-box! (session-out-box existing) out)
+     (write-json-frame out frame-ctl
+                       (hasheq 'ok #t 'backend "resumed" 'session resume-id))
+     (session-pump! in out existing)]
+    [else
+     (define rec (create-session in out msg))
+     (session-pump! in out rec)]))
+
+(define (create-session in out msg)
   (define cols (or (hash-ref msg 'cols #f) 80))
   (define rows (or (hash-ref msg 'rows #f) 24))
   (define backend-str (~a (hash-ref msg 'backend "auto")))
@@ -173,41 +217,66 @@
   (define shell
     (or (current-shell)
         (or (getenv "SHELL") "/bin/sh")))
+  (define sid (fresh-session-id))
+  (define out-box (box out))
+  (define closed? (box #f))
+  ;; Shell bytes go to whoever is attached; detached = dropped.
+  (define (emit b)
+    (define o (unbox out-box))
+    (when o
+      (with-handlers ([exn:fail? void])
+        (write-frame o frame-data b))))
   (define-values (write-input! close-input! wait resize!)
     (with-handlers ([exn:fail?
                      (lambda (e)
                        (eprintf "moonbeam-host: pty backend failed (~a); using pipe\n"
                                 (exn-message e))
-                       (spawn-terminal 'pipe shell (list) cols rows
-                                       #:on-output
-                                       (lambda (b) (write-frame out frame-data b))))])
-      (spawn-terminal requested shell (list) cols rows
-                      #:on-output
-                      (lambda (b) (write-frame out frame-data b)))))
+                       (spawn-terminal 'pipe shell (list) cols rows #:on-output emit))])
+      (spawn-terminal requested shell (list) cols rows #:on-output emit)))
   (define effective
     (if resize! (if (eq? requested 'pty) 'pty requested) 'pipe))
-  (write-json-frame out frame-ctl (hasheq 'ok #t 'backend (~a effective)))
-  ;; Waiter: report the exit code when the shell dies.
-  (define waiter
-    (thread
-     (lambda ()
-       (define code (wait))
-       (write-json-frame out frame-exit (hasheq 'code code)))))
-  ;; Input pump: drive the shell from client frames.
+  ;; Waiter: when the shell dies, retire the session and tell the client
+  ;; that is currently attached, if any.
+  (thread
+   (lambda ()
+     (define code (wait))
+     (set-box! closed? #t)
+     (hash-remove! sessions sid)
+     (define o (unbox out-box))
+     (when o
+       (with-handlers ([exn:fail? void])
+         (write-json-frame o frame-exit (hasheq 'code code 'session sid))))))
+  (define rec (vector sid write-input! resize! wait close-input! out-box closed?))
+  (hash-set! sessions sid rec)
+  (write-json-frame out frame-ctl
+                    (hasheq 'ok #t 'backend (~a effective) 'session sid))
+  rec)
+
+;; Drives one connection for a session. Connection EOF / bye = detach; the
+;; shell lives on for the next attach.
+(define (session-pump! in out rec)
+  (define (detach!) (set-box! (session-out-box rec) #f))
   (let loop ()
-    (define-values (t payload) (read-frame in))
     (cond
-      [(not t) (close-input!)]
-      [(= t frame-data) (write-input! payload) (loop)]
-      [(= t frame-resize)
-       (when resize!
-         (resize! (hash-ref payload 'cols 80) (hash-ref payload 'rows 24)))
-       (loop)]
-      [(= t frame-ctl)
-       (when (equal? (hash-ref payload 'op #f) "bye")
-         (close-input!))]
-      [else (loop)]))
-  (sync/timeout 30 waiter))
+      [(session-dead? rec) (detach!)]
+      [else
+       (define-values (t payload) (read-frame in))
+       (cond
+         [(not t) (detach!)]
+         [(= t frame-data)
+          ((session-write! rec) payload)
+          (loop)]
+         [(= t frame-resize)
+          (define r! (session-resize! rec))
+          (when r!
+            (r! (hash-ref payload 'cols 80) (hash-ref payload 'rows 24)))
+          (loop)]
+         [(= t frame-ctl)
+          (if (equal? (hash-ref payload 'op #f) "bye")
+              (detach!)
+              (loop))]
+         [else (loop)])]))
+  (detach!))
 
 ;; ---- connection handling ----
 
@@ -286,9 +355,45 @@
                     (hasheq 'id host-id 'addrs (list advertise)) token))
   (values code resp))
 
+;; ---- relay uplink (M1) ----
+;;
+;; Dials OUT to the relay and parks there as a waiting uplink. When the relay
+;; welds a client onto it, the connection turns into a normal client session
+;; (handle-conn). Reconnects a second after every session or failure.
+
+(define uplink-pool-size (make-parameter 3))
+
+(define (uplink-loop! relay-host relay-port host-id relay-token host-token)
+  (for ([_slot (in-range (uplink-pool-size))])
+    (thread
+     (lambda ()
+       (let loop ()
+         (with-handlers ([exn:fail? void])
+         ;; Advertise relay reachability for /lookup-based discovery.
+         (with-handlers ([exn:fail? void])
+           (http-post-json relay-host relay-port "/register"
+                           (hasheq 'id host-id
+                                   'addrs (list (format "relay:~a:~a"
+                                                        relay-host relay-port)))
+                           relay-token))
+         (define-values (in out) (tcp-connect relay-host relay-port))
+         (fprintf out "UP ~a ~a\n" host-id relay-token)
+         (flush-output out)
+         ;; The relay's first framed message is the tunnel verdict:
+         ;; {"op":"go"} splices a client in; {"op":"deny"} means retry.
+         (define verdict (read-json-frame in frame-ctl))
+         (when (and verdict (equal? (hash-ref verdict 'op #f) "go"))
+           (handle-conn in out host-token
+                        (format "relay:~a:~a" relay-host relay-port)))
+           (close-input-port in)
+           (close-output-port out))
+         (sleep 1)
+         (loop)))))
+  (void))
+
 (provide default-port config-dir
          ensure-host-token host-pin
-         start-daemon! register-with-relay!)
+         start-daemon! register-with-relay! uplink-loop!)
 
 (module+ main
   (require racket/cmdline
@@ -305,7 +410,7 @@
   (define backend-str "auto")
   (define relay #f)
   (define host-id #f)
-  (define advertise #f)
+  (define relay-token-arg (getenv "MOONBEAM_RELAY_TOKEN"))
   (command-line
    #:program "moonbeam-host"
    #:once-each
@@ -319,20 +424,21 @@
     (set! relay r)]
    [("--host-id") h "Host id used at the relay (requires --relay)"
     (set! host-id h)]
-   [("--advertise") a "Address advertised at the relay, host:port"
-    (set! advertise a)])
+   [("--relay-token") rt "Relay shared token (default $MOONBEAM_RELAY_TOKEN)"
+    (set! relay-token-arg rt)])
   (current-backend
    (match backend-str ["pipe" 'pipe] ["pty" 'pty] [_ 'auto]))
   (when shell (current-shell shell))
   (define token (ensure-host-token))
-  (start-daemon! #:port port #:shell shell)
-  (when (and relay host-id advertise)
+  (define-values (_listener _hostname actual-port)
+    (start-daemon! #:port port #:shell shell))
+  (when (and relay host-id)
+    (unless relay-token-arg
+      (eprintf "warning: --relay needs --relay-token or MOONBEAM_RELAY_TOKEN\n"))
     (define parts (string-split relay ":"))
-    (define-values (code resp)
-      (register-with-relay! (car parts) (string->number (cadr parts))
-                            host-id advertise))
-    (printf "relay registration: ~a\n" code))
+    (uplink-loop! (car parts) (string->number (cadr parts))
+                  host-id relay-token-arg token))
   (printf "moonbeam-host listening on port ~a\npairing PIN: ~a\n"
-          port (host-pin token))
+          actual-port (host-pin token))
   (flush-output)
   (sync never-evt)))

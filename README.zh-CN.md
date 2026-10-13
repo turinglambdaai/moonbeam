@@ -51,20 +51,26 @@ racket racket/moonbeam/client.rkt pair <host> 49090 --pin <NNNNNN>
 racket racket/moonbeam/client.rkt run <host> echo hello       # agent 工作马：JSON verdict + 真实退出码
 racket racket/moonbeam/client.rkt sh <host> --command uptime  # 终端车道
 racket racket/moonbeam/client.rkt put <host> ./file.txt       # 文件传输
+
+# 从局域网外——先把两端指到你的 relay：
+racket racket/moonbeam/host.rkt start --relay <relay:8090> --host-id home --relay-token <token>
+racket racket/moonbeam/client.rkt use-relay <relay> 8090 <token>
+racket racket/moonbeam/client.rkt pair home --pin <NNNNNN> --via
+racket racket/moonbeam/client.rkt run home echo hello-from-anywhere
 ```
 
 ## 路线图
 
 - **M0** —— relay 服务器最小版（信令 + 远程唤醒）、Host 守护进程与 Client CLI，文本车道在局域网端到端验证：终端 + 文件传输。暂不涉及视频栈。
-- **M1** —— 外网链路：打洞优先、中继兜底，文本车道人在天涯也能用。"人在天涯也能连上家里"的一刻。
-- **M2** —— 桌面画面：Host CLI 一键装配 Apollo/Sunshine，Client 以独立进程驱动 Moonlight——办公级调优，不做电竞级打磨。GUI 壳（macOS / Windows / Linux）与自动化配对。
+- **M1** —— 外网链路，以 relay 拼接隧道交付：主机与客户端都向 relay 外呼，relay 把两条连接焊成一根字节管道——不需要端口转发，任何允许外呼的 NAT 后面都能用。路由梯子：先试局域网直连（硬超时），中继兜底。隧道上的文本车道：远程终端（多会话、断线继承）与文件传输。
+- **M2** —— 桌面画面：Host CLI 一键装配 Apollo/Sunshine，Client 以独立进程驱动 Moonlight——办公级调优，不做电竞级打磨。视频车道的直连梯级：IPv6 直拨与 UDP 打洞。GUI 壳（macOS / Windows / Linux）与自动化配对。
 - **M3** —— 完整唤醒体验（NAS 容器 + 云入口）、会话监控、被控端防窥、经 Apollo 按客户端虚拟显示器实现的无线副屏，以及中继上的 WireGuard 端点——给官方移动客户端当桥。
 - **M4** —— 家族打包标杆（dmg / msi / deb / rpm / AppImage、更新 feed）与产品主页。
 - **M5+** —— 移动端与手表客户端，等 Rivet 移动宿主；视情况在 GPLv3 义务下与主机端深度整合（fork Apollo）。
 
 ## 状态
 
-立项于 2026 年 10 月。M0 文本车道——配对、exec、终端与文件传输的局域网闭环——已实现并测试，relay 已带健康检查/信令/唤醒端点。外网链路（打洞 + 中继兜底）落在 M1，桌面画面栈落在 M2。
+立项于 2026 年 10 月。M0（局域网文本车道闭环）与 M1（relay 拼接隧道——外网可达、断线继承、路由梯子）均已实现并测试；桌面画面栈落在 M2。
 
 ## 许可证
 

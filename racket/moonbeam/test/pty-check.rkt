@@ -31,8 +31,8 @@
       (or (getenv "SHELL") "/bin/sh"))
     (define-values (_listener hostname port)
       (host:start-daemon! #:port 0 #:shell shell #:backend "pty" #:token-override token))
-    (pair! "ptyhost" "127.0.0.1" port (host:host-pin token))
-    (define-values (in out backend) (open-terminal "ptyhost" "127.0.0.1" port #:backend "pty"))
+    (pair! "ptyhost" #:pin (host:host-pin token) #:direct "127.0.0.1" #:direct-port port)
+    (define-values (in out backend sid) (open-terminal "ptyhost" #:backend "pty"))
     (eprintf "pty-check: backend=~a shell=~a\n" backend shell)
     ;; Ask the shell whether it is a TTY, then leave.
     (write-frame out frame-data

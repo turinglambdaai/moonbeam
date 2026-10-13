@@ -51,20 +51,26 @@ racket racket/moonbeam/client.rkt pair <host> 49090 --pin <NNNNNN>
 racket racket/moonbeam/client.rkt run <host> echo hello       # agent workhorse: JSON verdict, real exit code
 racket racket/moonbeam/client.rkt sh <host> --command uptime  # terminal lane
 racket racket/moonbeam/client.rkt put <host> ./file.txt       # file transfer
+
+# from OUTSIDE the LAN — point both ends at your relay first:
+racket racket/moonbeam/host.rkt start --relay <relay:8090> --host-id home --relay-token <token>
+racket racket/moonbeam/client.rkt use-relay <relay> 8090 <token>
+racket racket/moonbeam/client.rkt pair home --pin <NNNNNN> --via
+racket racket/moonbeam/client.rkt run home echo hello-from-anywhere
 ```
 
 ## Roadmap
 
 - **M0** — relay server minimum (signaling + wake-on-LAN), host daemon and client CLI, and the text lane verified end to end on LAN: terminal + file transfer. No video stack involved yet.
-- **M1** — the external-network path: hole-punching with relay fallback, so the text lane works from anywhere. The "it works from anywhere" moment.
-- **M2** — desktop view: the host CLI installs and configures Apollo/Sunshine, the client drives Moonlight as an external process — office-grade, not esports-tuned. GUI shells (macOS / Windows / Linux) with automated pairing.
+- **M1** — the external-network path, delivered as the relay splice tunnel: the host and the client both dial OUT to the relay, which welds their connections into one byte pipe — no port forwarding, works behind any NAT. Routing ladder: LAN direct first (hard deadline), relay as fallback. Text lane over the tunnel: remote terminal (multi-session, reconnect-safe) and file transfer.
+- **M2** — desktop view: the host CLI installs and configures Apollo/Sunshine, the client drives Moonlight as an external process — office-grade, not esports-tuned. Direct-path rungs for the video lane: IPv6 dialing and UDP hole-punching. GUI shells (macOS / Windows / Linux) with automated pairing.
 - **M3** — the complete wake experience (NAS container + cloud entry), session monitoring, a privacy screen for the host, a wireless second screen via Apollo's per-client virtual display, and a WireGuard endpoint on the relay as the bridge for official mobile clients.
 - **M4** — family packaging benchmark (dmg / msi / deb / rpm / AppImage, update feeds) and the product site.
 - **M5+** — mobile and watch clients, gated on the Rivet mobile host; possibly deeper integration with the host stack (an Apollo fork) under GPLv3 obligations.
 
 ## Status
 
-Project kickoff: October 2026. The M0 text lane — pairing, exec, terminal and file transfer over the LAN — is implemented and tested, and the relay ships health/signaling/wake endpoints. External-network access (hole-punching with relay fallback) lands in M1; the desktop-view stack in M2.
+Project kickoff: October 2026. M0 (the LAN text lane) and M1 (the relay splice tunnel — external-network reach, detached sessions, the routing ladder) are implemented and tested; the desktop-view stack lands in M2.
 
 ## License
 

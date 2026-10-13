@@ -48,24 +48,24 @@
 
     ;; -- pairing: wrong PIN rejected, right PIN accepted --
     (check-exn exn:fail?
-               (lambda () (pair! "testhost" "127.0.0.1" port "000000")))
-    (define paired-token (pair! "testhost" "127.0.0.1" port (host:host-pin token)))
+               (lambda () (pair! "testhost" #:pin "000000" #:direct "127.0.0.1" #:direct-port port)))
+    (define paired-token (pair! "testhost" #:pin (host:host-pin token) #:direct "127.0.0.1" #:direct-port port))
     (check-equal? paired-token token)
 
     ;; -- exec: the agent workhorse --
-    (define exec-resp (run-command "testhost" "127.0.0.1" port
+    (define exec-resp (run-command "testhost"
                                    (list "echo" "moonbeam-m0")))
     (check-true (hash-ref exec-resp 'ok))
     (check-equal? (hash-ref exec-resp 'code) 0)
     (check-true (string-contains? (hash-ref exec-resp 'stdout) "moonbeam-m0"))
 
-    (define exec2 (run-command "testhost" "127.0.0.1" port
+    (define exec2 (run-command "testhost"
                                (list "sh" "-c" "exit 7")))
     (check-equal? (hash-ref exec2 'code) 7)
 
     ;; -- terminal lane over pipes --
     (define-values (tout tcode)
-      (terminal-command "testhost" "127.0.0.1" port "echo tty-lane"))
+      (terminal-command "testhost" "echo tty-lane"))
     (check-true (string-contains? tout "tty-lane"))
     (check-equal? tcode 0)
 
@@ -77,13 +77,13 @@
     (display-to-file "" src #:exists 'truncate) ; placeholder
     (call-with-output-file src
       (lambda (fout) (write-bytes payload fout)) #:exists 'truncate)
-    (define put-ack (put-file "testhost" "127.0.0.1" port src "roundtrip.bin"))
+    (define put-ack (put-file "testhost" src "roundtrip.bin"))
     (check-true (hash-ref put-ack 'ok))
     (define stored (build-path cfg "incoming" "roundtrip.bin"))
     (check-true (file-exists? stored))
     (check-equal? (file->bytes stored) payload)
 
-    (define get-resp (get-file* "testhost" "127.0.0.1" port
+    (define get-resp (get-file* "testhost"
                                 (path->string stored)
                                 (path->string (build-path tmp "out.bin"))))
     (check-true (hash-ref get-resp 'ok))

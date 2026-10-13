@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added — M1: the text lane, anywhere
+
+- Relay splice tunnel: the host and the client both dial OUT to the relay,
+  which welds their connections into one dumb byte pipe — no port forwarding,
+  works behind any NAT that allows outbound TCP. A framed GO handshake keeps
+  the host from racing the relay for the first bytes.
+- Client routing ladder: stored LAN address first under a hard 1.5 s deadline
+  (connect + handshake), relay tunnel as fallback. Pairing works through the
+  relay too (`moonbeam pair --via`).
+- Detachable terminal sessions: `bye` or a dropped connection leaves the
+  shell running; `sh --resume <id>` reattaches with the environment intact
+  (断线继承, benchmarked against UU Remote).
+- Host uplink pool with automatic reconnect; the host advertises relay
+  reachability through `/lookup`.
+
+### Known M1 limits
+
+- Tunnel traffic is token-authenticated but not yet encrypted — end-to-end
+  TLS is the next hardening step.
+- UDP hole-punching is deferred to M2, together with the video stack that
+  makes it worth the complexity; until then the text lane rides the relay
+  (kilobits, not megabits) and direct IPv6 works wherever both ends have it.
+
 ### Added — M0: the text lane on the LAN
 
 - Frame protocol (`proto`): versioned, length-prefixed frames — JSON control
@@ -25,7 +48,8 @@ All notable changes to this project will be documented in this file.
 ### Known M0 limits
 
 - LAN only: external-network access (UDP hole-punching with relay fallback)
-  is the M1 milestone.
+  is the M1 milestone. [Shipped in M1 as the relay splice tunnel; UDP
+  hole-punching itself moved to M2 — see above.]
 - The pty has no controlling terminal, so Ctrl-C/SIGWINCH delivery is
   best-effort (mirrors the upstream-ecosystem limitation documented in the
   README).
